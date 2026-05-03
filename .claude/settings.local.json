@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(vercel:*)",
+      "Bash(curl:*)",
+      "Bash(node:*)",
+      "Bash(git add:*)",
+      "Bash(git:*)",
+      "Bash(cd:*)",
+      "Bash(ls:*)",
+      "Bash(cd frontend:*)",
+      "Bash(npm install:*)",
+      "Bash(find:*)",
+      "Bash(dir:*)",
+      "Bash(cd backend:*)"
+    ]
+  }
+}
