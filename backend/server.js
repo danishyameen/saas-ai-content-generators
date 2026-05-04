@@ -42,33 +42,36 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Routes
-const authRoutes = require('./routes/auth');
-const aiRoutes = require('./routes/ai');
-const paymentRoutes = require('./routes/payments');
-const adminRoutes = require('./routes/admin');
-const affiliateRoutes = require('./routes/affiliates');
-const whatsappRoutes = require('./routes/whatsapp');
-
-const registerRoute = (path, router) => {
-  if (typeof router === 'function') {
-    app.use(path, router);
-  } else if (router && typeof router.default === 'function') {
-    app.use(path, router.default);
-  } else {
-    console.error(`CRITICAL: Route ${path} failed to load as a function. Type: ${typeof router}`);
-    // Fallback dummy router to prevent crash
-    const dummyRouter = express.Router();
-    dummyRouter.all('*', (req, res) => res.status(500).json({ success: false, message: 'Route configuration error' }));
-    app.use(path, dummyRouter);
+const loadRoute = (path, modulePath) => {
+  try {
+    const route = require(modulePath);
+    if (typeof route === 'function') {
+      app.use(path, route);
+      console.log(`Route ${path} loaded successfully.`);
+    } else if (route && typeof route.default === 'function') {
+      app.use(path, route.default);
+      console.log(`Route ${path} loaded via .default.`);
+    } else {
+      console.error(`ERROR: Route ${path} is not a function. Type: ${typeof route}. Keys: ${Object.keys(route || {})}`);
+      const dummyRouter = express.Router();
+      dummyRouter.all('*', (req, res) => res.status(500).json({ 
+        success: false, 
+        message: 'Route configuration error',
+        debug: { path, type: typeof route }
+      }));
+      app.use(path, dummyRouter);
+    }
+  } catch (err) {
+    console.error(`CRITICAL: Failed to load route ${path}:`, err.message);
   }
 };
 
-registerRoute('/api/auth', authRoutes);
-registerRoute('/api/ai', aiRoutes);
-registerRoute('/api/payments', paymentRoutes);
-registerRoute('/api/admin', adminRoutes);
-registerRoute('/api/affiliates', affiliateRoutes);
-registerRoute('/api/whatsapp', whatsappRoutes);
+loadRoute('/api/auth', './routes/auth');
+loadRoute('/api/ai', './routes/ai');
+loadRoute('/api/payments', './routes/payments');
+loadRoute('/api/admin', './routes/admin');
+loadRoute('/api/affiliates', './routes/affiliates');
+loadRoute('/api/whatsapp', './routes/whatsapp');
 
 // Health check
 app.get('/api/health', (req, res) => {
