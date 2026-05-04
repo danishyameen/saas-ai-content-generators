@@ -42,36 +42,21 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Routes
-const loadRoute = (path, modulePath) => {
-  try {
-    const route = require(modulePath);
-    if (typeof route === 'function') {
-      app.use(path, route);
-      console.log(`Route ${path} loaded successfully.`);
-    } else if (route && typeof route.default === 'function') {
-      app.use(path, route.default);
-      console.log(`Route ${path} loaded via .default.`);
-    } else {
-      console.error(`ERROR: Route ${path} is not a function. Type: ${typeof route}. Keys: ${Object.keys(route || {})}`);
-      const dummyRouter = express.Router();
-      dummyRouter.all('*', (req, res) => res.status(500).json({ 
-        success: false, 
-        message: 'Route configuration error',
-        debug: { path, type: typeof route }
-      }));
-      app.use(path, dummyRouter);
-    }
-  } catch (err) {
-    console.error(`CRITICAL: Failed to load route ${path}:`, err.message);
-  }
-};
+const auth = require('./routes/auth');
+const ai = require('./routes/ai');
+const payments = require('./routes/payments');
+const admin = require('./routes/admin');
+const affiliates = require('./routes/affiliates');
+const whatsapp = require('./routes/whatsapp');
 
-loadRoute('/api/auth', './routes/auth');
-loadRoute('/api/ai', './routes/ai');
-loadRoute('/api/payments', './routes/payments');
-loadRoute('/api/admin', './routes/admin');
-loadRoute('/api/affiliates', './routes/affiliates');
-loadRoute('/api/whatsapp', './routes/whatsapp');
+const getRouter = (m) => (m && m.default) || m;
+
+app.use('/api/auth', getRouter(auth));
+app.use('/api/ai', getRouter(ai));
+app.use('/api/payments', getRouter(payments));
+app.use('/api/admin', getRouter(admin));
+app.use('/api/affiliates', getRouter(affiliates));
+app.use('/api/whatsapp', getRouter(whatsapp));
 
 // Health check
 app.get('/api/health', (req, res) => {
