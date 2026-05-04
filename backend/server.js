@@ -9,6 +9,9 @@ const connectDB = require('./config/db');
 // Initialize app
 const app = express();
 
+// Trust proxy for Vercel (required for express-rate-limit)
+app.set('trust proxy', 1);
+
 // Connect to MongoDB
 connectDB();
 
@@ -39,12 +42,33 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/ai', require('./routes/ai'));
-app.use('/api/payments', require('./routes/payments'));
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/affiliates', require('./routes/affiliates'));
-app.use('/api/whatsapp', require('./routes/whatsapp'));
+const authRoutes = require('./routes/auth');
+const aiRoutes = require('./routes/ai');
+const paymentRoutes = require('./routes/payments');
+const adminRoutes = require('./routes/admin');
+const affiliateRoutes = require('./routes/affiliates');
+const whatsappRoutes = require('./routes/whatsapp');
+
+const registerRoute = (path, router) => {
+  if (typeof router === 'function') {
+    app.use(path, router);
+  } else if (router && typeof router.default === 'function') {
+    app.use(path, router.default);
+  } else {
+    console.error(`CRITICAL: Route ${path} failed to load as a function. Type: ${typeof router}`);
+    // Fallback dummy router to prevent crash
+    const dummyRouter = express.Router();
+    dummyRouter.all('*', (req, res) => res.status(500).json({ success: false, message: 'Route configuration error' }));
+    app.use(path, dummyRouter);
+  }
+};
+
+registerRoute('/api/auth', authRoutes);
+registerRoute('/api/ai', aiRoutes);
+registerRoute('/api/payments', paymentRoutes);
+registerRoute('/api/admin', adminRoutes);
+registerRoute('/api/affiliates', affiliateRoutes);
+registerRoute('/api/whatsapp', whatsappRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
