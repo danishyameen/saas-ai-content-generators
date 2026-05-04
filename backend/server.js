@@ -46,32 +46,30 @@ const startDB = async () => {
 };
 startDB();
 
-// Lazy loading route helper
-const route = (modulePath) => (req, res, next) => {
-  try {
-    const m = require(modulePath);
-    const router = (m && m.default) || m;
-    if (typeof router !== 'function') {
-      throw new Error(`Module ${modulePath} did not export a function. Type: ${typeof router}`);
-    }
-    router(req, res, next);
-  } catch (err) {
-    console.error(`Route Error [${modulePath}]:`, err.message);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Route configuration error',
-      debug: process.env.NODE_ENV === 'development' ? err.message : undefined
-    });
+// Routes
+const authRouter = require('./routes/auth');
+const aiRouter = require('./routes/ai');
+const paymentsRouter = require('./routes/payments');
+const adminRouter = require('./routes/admin');
+const affiliatesRouter = require('./routes/affiliates');
+const whatsappRouter = require('./routes/whatsapp');
+
+const safeUse = (path, router) => {
+  const r = (router && router.default) || router;
+  if (typeof r === 'function') {
+    app.use(path, r);
+  } else {
+    console.error(`ERROR: Route ${path} failed to load as a function. Type: ${typeof r}`);
+    app.use(path, (req, res) => res.status(500).json({ success: false, message: 'Route configuration error' }));
   }
 };
 
-// Routes
-app.use('/api/auth', route('./routes/auth'));
-app.use('/api/ai', route('./routes/ai'));
-app.use('/api/payments', route('./routes/payments'));
-app.use('/api/admin', route('./routes/admin'));
-app.use('/api/affiliates', route('./routes/affiliates'));
-app.use('/api/whatsapp', route('./routes/whatsapp'));
+safeUse('/api/auth', authRouter);
+safeUse('/api/ai', aiRouter);
+safeUse('/api/payments', paymentsRouter);
+safeUse('/api/admin', adminRouter);
+safeUse('/api/affiliates', affiliatesRouter);
+safeUse('/api/whatsapp', whatsappRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
