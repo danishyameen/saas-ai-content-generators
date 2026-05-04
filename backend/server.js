@@ -47,29 +47,12 @@ const startDB = async () => {
 startDB();
 
 // Routes
-const authRouter = require('./routes/auth');
-const aiRouter = require('./routes/ai');
-const paymentsRouter = require('./routes/payments');
-const adminRouter = require('./routes/admin');
-const affiliatesRouter = require('./routes/affiliates');
-const whatsappRouter = require('./routes/whatsapp');
-
-const safeUse = (path, router) => {
-  const r = (router && router.default) || router;
-  if (typeof r === 'function') {
-    app.use(path, r);
-  } else {
-    console.error(`ERROR: Route ${path} failed to load as a function. Type: ${typeof r}`);
-    app.use(path, (req, res) => res.status(500).json({ success: false, message: 'Route configuration error' }));
-  }
-};
-
-safeUse('/api/auth', authRouter);
-safeUse('/api/ai', aiRouter);
-safeUse('/api/payments', paymentsRouter);
-safeUse('/api/admin', adminRouter);
-safeUse('/api/affiliates', affiliatesRouter);
-safeUse('/api/whatsapp', whatsappRouter);
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/ai', require('./routes/ai'));
+app.use('/api/payments', require('./routes/payments'));
+app.use('/api/admin', require('./routes/admin'));
+app.use('/api/affiliates', require('./routes/affiliates'));
+app.use('/api/whatsapp', require('./routes/whatsapp'));
 
 // Health check
 app.get('/api/health', (req, res) => {
