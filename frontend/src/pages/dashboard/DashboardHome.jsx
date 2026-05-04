@@ -30,20 +30,32 @@ const generators = [
 ];
 
 export default function DashboardHome() {
-  const { user } = useAuthStore();
+  const { user, refreshUser } = useAuthStore();
   const [stats, setStats] = useState({ used: 0, limit: 10 });
 
   useEffect(() => {
-    // Fetch usage stats
-    aiAPI.getHistory({ limit: 1 })
-      .then(({ data }) => {
+    // Refresh user data to get latest usage/plan
+    const fetchStats = async () => {
+      try {
+        await refreshUser();
+        
+        const currentLimit = (user?.role === 'admin' || user?.plan === 'enterprise') 
+          ? 'unlimited' 
+          : (user?.plan === 'pro' ? 100 : 10);
+          
         setStats({
           used: user?.usageToday || 0,
-          limit: user?.plan === 'free' ? 10 : (user?.plan === 'pro' ? 100 : 'unlimited'),
+          limit: currentLimit,
         });
-      })
-      .catch(() => {});
-  }, [user]);
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      }
+    };
+
+    if (user) {
+      fetchStats();
+    }
+  }, []);
 
   return (
     <motion.div
