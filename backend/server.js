@@ -28,7 +28,7 @@ app.use('/api/', limiter);
 
 // Body parsing middleware
 app.use(cors({
-  origin: '*', // Allow all origins to avoid Vercel CORS issues
+  origin: '*', 
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -36,27 +36,42 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Logging
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-}
+// Database connection helper
+const startDB = async () => {
+  try {
+    await connectDB();
+  } catch (err) {
+    console.error('Initial DB Connection Error:', err.message);
+  }
+};
+startDB();
+
+// Lazy loading route helper
+const route = (modulePath) => (req, res, next) => {
+  try {
+    const m = require(modulePath);
+    const router = (m && m.default) || m;
+    if (typeof router !== 'function') {
+      throw new Error(`Module ${modulePath} did not export a function. Type: ${typeof router}`);
+    }
+    router(req, res, next);
+  } catch (err) {
+    console.error(`Route Error [${modulePath}]:`, err.message);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Route configuration error',
+      debug: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};
 
 // Routes
-const auth = require('./routes/auth');
-const ai = require('./routes/ai');
-const payments = require('./routes/payments');
-const admin = require('./routes/admin');
-const affiliates = require('./routes/affiliates');
-const whatsapp = require('./routes/whatsapp');
-
-const getRouter = (m) => (m && m.default) || m;
-
-app.use('/api/auth', getRouter(auth));
-app.use('/api/ai', getRouter(ai));
-app.use('/api/payments', getRouter(payments));
-app.use('/api/admin', getRouter(admin));
-app.use('/api/affiliates', getRouter(affiliates));
-app.use('/api/whatsapp', getRouter(whatsapp));
+app.use('/api/auth', route('./routes/auth'));
+app.use('/api/ai', route('./routes/ai'));
+app.use('/api/payments', route('./routes/payments'));
+app.use('/api/admin', route('./routes/admin'));
+app.use('/api/affiliates', route('./routes/affiliates'));
+app.use('/api/whatsapp', route('./routes/whatsapp'));
 
 // Health check
 app.get('/api/health', (req, res) => {
