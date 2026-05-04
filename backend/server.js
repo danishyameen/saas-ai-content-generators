@@ -47,29 +47,30 @@ const startDB = async () => {
 startDB();
 
 // Routes
-const registerRoute = (name, path) => {
-  try {
-    const router = require(path);
-    const r = (router && router.default) || router;
-    if (typeof r === 'function') {
-      app.use(name, r);
-      console.log(`Route ${name} registered successfully.`);
-    } else {
-      console.error(`ERROR: Route ${name} from ${path} is not a function. Type: ${typeof r}`);
-      // Mount a dummy route to avoid crash
-      app.use(name, (req, res) => res.status(500).json({ success: false, message: 'Route load error' }));
-    }
-  } catch (err) {
-    console.error(`CRITICAL: Failed to load route ${name} from ${path}:`, err.message);
+const auth = require('./routes/auth');
+const ai = require('./routes/ai');
+const payments = require('./routes/payments');
+const admin = require('./routes/admin');
+const affiliates = require('./routes/affiliates');
+const whatsapp = require('./routes/whatsapp');
+
+const registerRoute = (name, router) => {
+  const r = (router && router.default) || router;
+  if (typeof r === 'function') {
+    app.use(name, r);
+    console.log(`Route ${name} registered.`);
+  } else {
+    console.error(`ERROR: Route ${name} is not a function.`);
+    app.use(name, (req, res) => res.status(500).json({ success: false, message: 'Route load error' }));
   }
 };
 
-registerRoute('/api/auth', './routes/auth');
-registerRoute('/api/ai', './routes/ai');
-registerRoute('/api/payments', './routes/payments');
-registerRoute('/api/admin', './routes/admin');
-registerRoute('/api/affiliates', './routes/affiliates');
-registerRoute('/api/whatsapp', './routes/whatsapp');
+registerRoute('/api/auth', auth);
+registerRoute('/api/ai', ai);
+registerRoute('/api/payments', payments);
+registerRoute('/api/admin', admin);
+registerRoute('/api/affiliates', affiliates);
+registerRoute('/api/whatsapp', whatsapp);
 
 // Health check
 app.get('/api/health', (req, res) => {
