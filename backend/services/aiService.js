@@ -1,14 +1,28 @@
 const OpenAI = require('openai');
 const axios = require('axios');
 
-const groq = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY,
-  baseURL: 'https://api.groq.com/openai/v1',
-});
+// Lazy initialize Groq and OpenAI
+let groq;
+let openai;
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const getGroq = () => {
+  if (!groq) {
+    groq = new OpenAI({
+      apiKey: process.env.GROQ_API_KEY,
+      baseURL: 'https://api.groq.com/openai/v1',
+    });
+  }
+  return groq;
+};
+
+const getOpenAI = () => {
+  if (!openai) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openai;
+};
 
 const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY;
 
@@ -148,8 +162,9 @@ class AIService {
       }
 
       const fullPrompt = prompt(input);
+      const groqClient = getGroq();
 
-      const completion = await groq.chat.completions.create({
+      const completion = await groqClient.chat.completions.create({
         messages: [
           {
             role: 'system',
@@ -201,7 +216,8 @@ Generate:
 Make it actionable and results-oriented.
 `;
 
-      const completion = await groq.chat.completions.create({
+      const groqClient = getGroq();
+      const completion = await groqClient.chat.completions.create({
         messages: [
           { role: 'system', content: 'You are a helpful AI assistant.' },
           { role: 'user', content: prompt },
@@ -236,7 +252,8 @@ Generate 10 reusable marketing templates:
 Make each template fill-in-the-blank style with placeholders.
 `;
 
-      const completion = await groq.chat.completions.create({
+      const groqClient = getGroq();
+      const completion = await groqClient.chat.completions.create({
         messages: [
           { role: 'system', content: 'You are a helpful AI assistant.' },
           { role: 'user', content: prompt },
@@ -285,7 +302,8 @@ Make each template fill-in-the-blank style with placeholders.
         brandingPrompt += ` Ensure the logo and details are integrated naturally onto the product or a subtle overlay in the corner.`;
       }
 
-      const response = await openai.images.generate({
+      const openaiClient = getOpenAI();
+      const response = await openaiClient.images.generate({
         model: "dall-e-3",
         prompt: `High-quality professional product photography of: ${productInfo}.${brandingPrompt} Commercial style, clean background, 4k resolution.`,
         n: 1,
@@ -311,7 +329,8 @@ Make each template fill-in-the-blank style with placeholders.
 
       if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'sk-placeholder') {
         try {
-          const response = await openai.images.generate({
+          const openaiClient = getOpenAI();
+          const response = await openaiClient.images.generate({
             model: "dall-e-3",
             prompt: `A modern, professional, minimalist logo for a brand named "${brandName}" in the ${industry} industry. Vector style, flat design, white background, high contrast.`,
             n: 1,
