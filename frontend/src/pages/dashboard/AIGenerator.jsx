@@ -35,11 +35,23 @@ export default function AIGenerator({ title, description, icon: Icon, color, api
     if (choice === 'no' && prompt.trim()) {
       setImgLoading(true);
       try {
-        const { data } = await aiAPI.generateImages({ prompt });
-        setImages(data.data);
-        toast.success('Images generated!');
+        if (!window.puter) {
+          throw new Error('Puter.js not loaded');
+        }
+
+        // Generate 4 images using Puter.js (Free)
+        const imagePromises = Array(4).fill(0).map(() => 
+          window.puter.ai.txt2img(`${prompt}, high quality, professional photography`)
+        );
+        
+        const imageElements = await Promise.all(imagePromises);
+        const imageUrls = imageElements.map(img => img.src);
+        
+        setImages(imageUrls);
+        toast.success('Images generated for free via Puter.js!');
       } catch (error) {
-        toast.error('Image generation failed');
+        console.error('Puter Image Error:', error);
+        toast.error('Image generation failed. Please try again.');
       } finally {
         setImgLoading(false);
       }

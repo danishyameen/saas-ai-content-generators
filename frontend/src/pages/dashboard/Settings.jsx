@@ -49,14 +49,25 @@ export default function Settings() {
     setLogoLoading(true);
     setGeneratedLogos([]);
     try {
-      const { data } = await aiAPI.generateLogo({
-        brandName: companyDetails.name
-      });
-      setGeneratedLogos(data.data);
-      toast.success('AI generated 4 logo options for you!');
+      if (!window.puter) {
+        throw new Error('Puter.js not loaded');
+      }
+
+      // Generate 4 logo options using Puter.js
+      const prompt = `A modern, professional, minimalist logo for a brand named "${companyDetails.name}". Vector style, flat design, white background, high contrast.`;
+      
+      const logoPromises = Array(4).fill(0).map(() => 
+        window.puter.ai.txt2img(prompt)
+      );
+      
+      const logoElements = await Promise.all(logoPromises);
+      const logoUrls = logoElements.map(img => img.src);
+
+      setGeneratedLogos(logoUrls);
+      toast.success('AI generated 4 logo options for you for free!');
     } catch (error) {
-      const msg = error.response?.data?.message || 'Logo generation failed';
-      toast.error(msg);
+      console.error('Puter Logo Error:', error);
+      toast.error('Logo generation failed. Please try again.');
     } finally {
       setLogoLoading(false);
     }
