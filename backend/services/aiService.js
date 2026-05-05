@@ -272,7 +272,34 @@ Make each template fill-in-the-blank style with placeholders.
 
   async generateImages(productInfo, count = 4, companyDetails = null) {
     try {
-      if (UNSPLASH_ACCESS_KEY) {
+      let brandingPrompt = '';
+      if (companyDetails && companyDetails.name) {
+        brandingPrompt = ` The image MUST include the company branding for "${companyDetails.name}".`;
+        if (companyDetails.website) brandingPrompt += ` Website: ${companyDetails.website}.`;
+        if (companyDetails.phone) brandingPrompt += ` Contact: ${companyDetails.phone}.`;
+        if (companyDetails.address) brandingPrompt += ` Address: ${companyDetails.address}.`;
+        brandingPrompt += ` Ensure the logo and details are integrated naturally onto the product or a subtle overlay in the corner.`;
+      }
+
+      // Primary: Try OpenAI DALL-E-3 if API key is available
+      if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'sk-placeholder') {
+        try {
+          const openaiClient = getOpenAI();
+          const response = await openaiClient.images.generate({
+            model: "dall-e-3",
+            prompt: `High-quality professional product photography of: ${productInfo}.${brandingPrompt} Commercial style, clean background, 4k resolution.`,
+            n: count,
+            size: "1024x1024",
+          });
+
+          return response.data.map(img => img.url);
+        } catch (openaiError) {
+          console.warn('OpenAI DALL-E-3 failed, trying alternatives:', openaiError.message);
+        }
+      }
+
+      // Secondary: Try Unsplash if API key is available
+      if (process.env.UNSPLASH_ACCESS_KEY) {
         try {
           const response = await axios.get('https://api.unsplash.com/search/photos', {
             params: {
@@ -289,28 +316,19 @@ Make each template fill-in-the-blank style with placeholders.
             return response.data.results.map(img => img.urls.regular);
           }
         } catch (searchError) {
-          console.warn('Unsplash Search failed, falling back to AI generation:', searchError.message);
+          console.warn('Unsplash Search failed:', searchError.message);
         }
       }
 
-      let brandingPrompt = '';
-      if (companyDetails && companyDetails.name) {
-        brandingPrompt = ` The image MUST include the company branding for "${companyDetails.name}".`;
-        if (companyDetails.website) brandingPrompt += ` Website: ${companyDetails.website}.`;
-        if (companyDetails.phone) brandingPrompt += ` Contact: ${companyDetails.phone}.`;
-        if (companyDetails.address) brandingPrompt += ` Address: ${companyDetails.address}.`;
-        brandingPrompt += ` Ensure the logo and details are integrated naturally onto the product or a subtle overlay in the corner.`;
-      }
-
-      const openaiClient = getOpenAI();
-      const response = await openaiClient.images.generate({
-        model: "dall-e-3",
-        prompt: `High-quality professional product photography of: ${productInfo}.${brandingPrompt} Commercial style, clean background, 4k resolution.`,
-        n: 1,
-        size: "1024x1024",
-      });
-
-      return [response.data[0].url];
+      // Tertiary: Fallback to placeholder images
+      console.log('Using placeholder images as fallback');
+      const query = encodeURIComponent(productInfo);
+      return [
+        `https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80&text=${query}_1`,
+        `https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80&text=${query}_2`,
+        `https://images.unsplash.com/photo-1491553895911-0055eca6402d?auto=format&fit=crop&w=800&q=80&text=${query}_3`,
+        `https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80&text=${query}_4`
+      ];
     } catch (error) {
       console.error('AI Image Generation Error:', error);
       const query = encodeURIComponent(productInfo);

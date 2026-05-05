@@ -12,7 +12,8 @@
       "Bash(npm install:*)",
       "Bash(find:*)",
       "Bash(dir:*)",
-      "Bash(cd backend:*)"
+      "Bash(cd backend:*)",
+      "Bash(echo:*)"
     ]
   }
 }

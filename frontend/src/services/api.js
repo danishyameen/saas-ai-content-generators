@@ -1,4 +1,6 @@
+
 import axios from 'axios';
+import puterImageService from './puterImageService';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -43,7 +45,7 @@ export const authAPI = {
   resetPassword: (data) => api.post('/auth/reset-password', data),
 };
 
-// AI API
+// AI API - Enhanced with Puter.js client-side image generation
 export const aiAPI = {
   generateProduct: (data) => api.post('/ai/product-generator', data),
   generateSEO: (data) => api.post('/ai/seo-generator', data),
@@ -53,8 +55,68 @@ export const aiAPI = {
   generateCompetitorAnalysis: (data) => api.post('/ai/competitor-analysis', data),
   generateMarketingCampaign: (data) => api.post('/ai/marketing-campaign', data),
   getTemplates: () => api.get('/ai/templates'),
-  generateImages: (data) => api.post('/ai/generate-images', data),
-  generateLogo: (data) => api.post('/ai/generate-logo', data),
+
+  /**
+   * Generate images - Uses Puter.js for client-side generation
+   * Falls back to backend API if Puter.js is not available
+   *
+   * @param {Object} data - Image generation data
+   * @param {string} data.prompt - Text prompt for image generation
+   * @param {number} data.count - Number of images to generate
+   * @param {boolean} usePuterJS - Force use of Puter.js (default: true)
+   * @returns {Promise<{success: boolean, data: Array, source: string}>}
+   */
+  generateImages: (data, usePuterJS = true) => {
+    // Use Puter.js for client-side generation (no API key needed!)
+    if (usePuterJS && puterImageService.isAvailable()) {
+      return puterImageService.generateImages(data.prompt, {
+        count: data.count || 4,
+        model: 'flux',
+        width: 1024,
+        height: 1024,
+        enhance: true,
+        safe: true
+      }).then(images => ({
+        success: true,
+        data: images,
+        source: 'puterjs'
+      })).catch(error => {
+        console.error('Puter.js failed, trying backend fallback:', error);
+        // Fallback to backend API
+        return api.post('/ai/generate-images', data);
+      });
+    }
+
+    // Fallback to backend API
+    return api.post('/ai/generate-images', data);
+  },
+
+  /**
+   * Generate logo options - Uses Puter.js client-side
+   *
+   * @param {Object} data - Logo generation data
+   * @param {string} data.brandName - Brand name for logo
+   * @param {string} data.industry - Industry type
+   * @param {boolean} usePuterJS - Force use of Puter.js (default: true)
+   * @returns {Promise<{success: boolean, data: Array, source: string}>}
+   */
+  generateLogo: (data, usePuterJS = true) => {
+    if (usePuterJS && puterImageService.isAvailable()) {
+      return puterImageService.generateLogo(data.brandName, data.industry)
+        .then(result => ({
+          success: true,
+          data: result.options,
+          primary: result.primary,
+          source: 'puterjs'
+        }))
+        .catch(error => {
+          console.error('Puter.js logo failed, trying backend:', error);
+          return api.post('/ai/generate-logo', data);
+        });
+    }
+    return api.post('/ai/generate-logo', data);
+  },
+
   getHistory: (params) => api.get('/ai/history', { params }),
   deleteHistory: (id) => api.delete(`/ai/history/${id}`),
 };
@@ -92,4 +154,8 @@ export const affiliatesAPI = {
   getStats: () => api.get('/affiliates/stats'),
 };
 
+// Puter.js Image Service (exported for direct use)
+export { puterImageService };
+
 export default api;
+
